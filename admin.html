@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Consultation Messages</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .header { background: #8b4513; color: white; padding: 1rem; text-align: center; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #8b4513; }
+        .messages { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .message-item { padding: 1rem; border-bottom: 1px solid #eee; }
+        .message-item:last-child { border-bottom: none; }
+        .message-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .message-name { font-weight: bold; color: #8b4513; }
+        .message-date { color: #666; font-size: 0.9rem; }
+        .message-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 0.5rem 0; }
+        .message-text { background: #f9f9f9; padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem; }
+        .refresh-btn { background: #8b4513; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; margin-bottom: 1rem; }
+        .refresh-btn:hover { background: #6d3410; }
+        .no-messages { text-align: center; padding: 2rem; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-om"></i> Ravi Vastu Jyotish - Admin Panel</h1>
+        <p>Consultation Messages & Bookings</p>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalMessages">0</div>
+                <div>Total Messages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayMessages">0</div>
+                <div>Today's Messages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingMessages">0</div>
+                <div>Pending</div>
+            </div>
+        </div>
+
+        <button class="refresh-btn" onclick="loadMessages()">
+            <i class="fas fa-sync-alt"></i> Refresh Messages
+        </button>
+
+        <div class="messages" id="messagesContainer">
+            <div class="no-messages">Loading messages...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadMessages() {
+            try {
+                const response = await fetch('/api/consultations');
+                const messages = await response.json();
+                
+                displayMessages(messages);
+                updateStats(messages);
+            } catch (error) {
+                document.getElementById('messagesContainer').innerHTML = 
+                    '<div class="no-messages">Error loading messages. Make sure the server is running.</div>';
+            }
+        }
+
+        function displayMessages(messages) {
+            const container = document.getElementById('messagesContainer');
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="no-messages">No consultation requests yet.</div>';
+                return;
+            }
+
+            container.innerHTML = messages.map(msg => `
+                <div class="message-item">
+                    <div class="message-header">
+                        <div class="message-name">${msg.name}</div>
+                        <div class="message-date">${new Date(msg.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div class="message-details">
+                        <div><strong>Email:</strong> ${msg.email}</div>
+                        <div><strong>Phone:</strong> ${msg.phone}</div>
+                        <div><strong>Service:</strong> ${msg.service}</div>
+                        <div><strong>Preferred Date:</strong> ${msg.date}</div>
+                    </div>
+                    ${msg.message ? `<div class="message-text"><strong>Message:</strong> ${msg.message}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updateStats(messages) {
+            const today = new Date().toDateString();
+            const todayMessages = messages.filter(msg => 
+                new Date(msg.createdAt).toDateString() === today
+            );
+
+            document.getElementById('totalMessages').textContent = messages.length;
+            document.getElementById('todayMessages').textContent = todayMessages.length;
+            document.getElementById('pendingMessages').textContent = messages.filter(msg => msg.status === 'pending').length;
+        }
+
+        // Load messages on page load
+        loadMessages();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadMessages, 30000);
+    </script>
+</body>
+</html>

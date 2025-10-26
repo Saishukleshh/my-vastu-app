@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: ravi-vastu-jyotish
+    env: node
+    buildCommand: npm install
+    startCommand: node simple-server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
